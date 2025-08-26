@@ -5,12 +5,6 @@
 Delphi-AI-Bot is an AI-powered platform designed to deliver advanced research and development (R&D) insights using modern cloud-native architecture. The system leverages Azure services for secure, scalable, and efficient deployment, integrating both frontend and backend components with robust authentication and monitoring.
 
 
-## Architecture
-
-The following diagram illustrates the updated AWS-based architecture of the Delphi-AI-Bot project:
-
-![AWS Project Architecture](Architecture/Version%203%20-%20Project%20Architecture%20-%20AWS%20(Bedrock).png)
-
 ### Key Components
 
 - **Amazon Route 53**: DNS and routing for web client requests.
