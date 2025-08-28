@@ -3,11 +3,10 @@ import "./App.css";
 
 export default function App() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
 
   return (
     <main className="app">
-      {/* Brand hero sits on the gradient (white text is visible) */}
+      {/* Brand hero on gradient */}
       <div
         style={{
           display: "flex",
@@ -53,7 +52,7 @@ export default function App() {
         </p>
       </div>
 
-      {/* Card with the actual form */}
+      {/* Card with email + SSO */}
       <section className="card">
         <label htmlFor="email">Email</label>
         <input
@@ -64,17 +63,8 @@ export default function App() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
         <button className="btn btn-primary" type="button">
-          Sign in
+          Continue
         </button>
 
         <div className="divider">
