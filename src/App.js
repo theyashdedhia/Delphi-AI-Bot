@@ -83,8 +83,28 @@ export default function App() {
           <span></span>
         </div>
 
-        <button className="btn btn-outline" type="button">
-          Microsoft
+        <button
+          className="btn btn-outline"
+          type="button"
+          aria-label="Sign in with Microsoft"
+          onClick={() => alert("Microsoft OAuth")}
+        >
+          <span
+            style={{
+              display: "grid",
+              gridTemplateColumns: "14px 14px",
+              gridTemplateRows: "14px 14px",
+              gap: "3px",
+              marginRight: "8px",
+            }}
+            aria-hidden="true"
+          >
+            <span style={{ background: "#f25022", width: 14, height: 14, borderRadius: 2 }} />
+            <span style={{ background: "#7fba00", width: 14, height: 14, borderRadius: 2 }} />
+            <span style={{ background: "#00a4ef", width: 14, height: 14, borderRadius: 2 }} />
+            <span style={{ background: "#ffb900", width: 14, height: 14, borderRadius: 2 }} />
+          </span>
+          <span>Microsoft</span>
         </button>
       </section>
     </main>
