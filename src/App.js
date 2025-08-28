@@ -1,9 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import "./App.css";
 
 export default function App() {
-  const [email, setEmail] = useState("");
-
   return (
     <main className="app">
       {/* Brand hero on gradient */}
@@ -52,24 +50,11 @@ export default function App() {
         </p>
       </div>
 
-      {/* Card with email + SSO */}
-      <section className="card">
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          placeholder="you@company.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <button className="btn btn-primary" type="button">
-          Continue
-        </button>
-
+      {/* Card with only Microsoft SSO */}
+      <section className="card" style={{ textAlign: "center" }}>
         <div className="divider">
           <span></span>
-          <p>or continue with</p>
+          <p>Sign in with</p>
           <span></span>
         </div>
 
@@ -96,6 +81,31 @@ export default function App() {
           </span>
           <span>Microsoft</span>
         </button>
+
+        <p
+          style={{
+            marginTop: 12,
+            fontSize: 13,
+            color: "#ffffff",
+            textShadow: "0 1px 6px rgba(0,0,0,.18)",
+          }}
+        >
+          By continuing, you agree to the{" "}
+          <a
+            href="#"
+            style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}
+          >
+            Terms
+          </a>{" "}
+          and{" "}
+          <a
+            href="#"
+            style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}
+          >
+            Privacy Policy
+          </a>
+          .
+        </p>
       </section>
     </main>
   );
