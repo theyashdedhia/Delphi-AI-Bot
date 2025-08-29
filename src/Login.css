@@ -1,0 +1,220 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+/* =========================
+   Design Tokens
+   ========================= */
+:root{
+  --brand-900:#7a0e24;
+  --brand-800:#8e0d26;
+  --brand-700:#9f102d;
+  --brand:#c11a3a;
+  --brand-300:#e0637a;
+
+  --ink:#0f172a;
+  --ink-900:#101828;
+  --ink-600:#475467;
+  --ink-400:#98a2b3;
+
+  --white:#ffffff;
+  --offwhite:#F9FAFB;
+
+  --ring:rgba(193,26,58,.34);
+  --shadow-sm:0 8px 18px rgba(16,24,40,.16);
+  --shadow-md:0 10px 22px rgba(16,24,40,.22);
+  --shadow-lg:0 12px 28px rgba(16,24,40,.28);
+
+  --radius-lg:22px;
+  --radius-md:16px;
+}
+
+/* =========================
+   Base
+   ========================= */
+*{ box-sizing:border-box; margin:0; padding:0 }
+html, body, #root{ height:100% }
+body{
+  font:400 16px/1.6 "Poppins", ui-sans-serif, system-ui;
+  color:var(--ink);
+  background:var(--white);
+}
+
+/* =========================
+   Layout
+   ========================= */
+.auth{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* =========================
+   LEFT: Login Panel
+   ========================= */
+.auth__panel{
+  position:relative;
+  display:grid;
+  place-content:center; /* vertical + horizontal centering */
+  padding-block:64px;
+  padding-inline:56px;
+  background:linear-gradient(180deg, var(--brand-700) 0%, var(--brand) 55%, var(--brand-800) 100%);
+  overflow:hidden;
+}
+.auth__panel::after{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    radial-gradient(900px 600px at 65% 20%, rgba(255,255,255,.10), transparent 65%),
+    radial-gradient(1000px 700px at 15% 85%, rgba(0,0,0,.20), transparent 70%);
+  pointer-events:none;
+}
+.panel__inner{
+  position:relative;
+  width:min(480px, 94%);
+  color:var(--offwhite);
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+/* Branding hierarchy */
+.brandword{
+  font:800 38px/1.18 "Poppins", sans-serif;
+  letter-spacing:.3px;
+  color:var(--offwhite);
+  margin:0 0 8px;
+}
+.brandtagline{
+  font:400 13px/1.6 "Poppins", sans-serif;
+  font-style:italic;
+  color:#f3f4f6;
+  margin:0 0 28px;
+}
+
+/* Headings */
+.panel__title{
+  font:700 28px/1.25 "Poppins", sans-serif;
+  color:var(--offwhite);
+  margin:0 0 12px;
+}
+.panel__sub{
+  font:400 15px/1.6 "Poppins", sans-serif;
+  color:#e9edf5;
+  margin:0 0 34px;
+}
+
+/* =========================
+   CTA Button
+   ========================= */
+.btn{
+  width:clamp(260px, 70%, 340px);
+  align-self:center;
+  height:58px;
+  border-radius:16px;
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  font-weight:600; font-size:16px;
+  cursor:pointer;
+  border:2px solid var(--brand);
+  transition:transform .15s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn__text{ transform:translateY(-1px) }
+
+.btn--microsoft{
+  background:var(--white);
+  color:#111827;
+  box-shadow:var(--shadow-sm);
+}
+.btn--microsoft:hover{
+  background:#f7f8f9;
+  transform:translateY(-2px) scale(1.015);
+  box-shadow:var(--shadow-md);
+}
+.btn--microsoft:active{
+  transform:translateY(-1px);
+  box-shadow:0 6px 14px rgba(16,24,40,.18);
+}
+.btn--microsoft:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 4px var(--offwhite), 0 0 0 7px var(--ring);
+}
+
+/* Microsoft 4-square */
+.ms-mark{
+  display:grid;
+  grid-template-columns:16px 16px;
+  grid-template-rows:16px 16px;
+  gap:3px;
+}
+.sq{ width:16px; height:16px; border-radius:3px }
+.sq--red{background:#f25022} .sq--green{background:#7fba00}
+.sq--blue{background:#00a4ef} .sq--yellow{background:#ffb900}
+
+/* Legal */
+.legal{
+  margin-top:26px;
+  text-align:center;
+  font-size:13px;
+  color:#e5e7eb;
+}
+.legal a{
+  color:var(--offwhite);
+  font-weight:600;
+  text-decoration:underline;
+}
+.legal a:hover{ text-decoration:none }
+
+/* =========================
+   RIGHT: Illustration Panel
+   ========================= */
+.auth__media{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  padding:56px;
+  background:linear-gradient(135deg, var(--brand-800) 0%, var(--brand-700) 55%, var(--brand) 100%);
+  overflow:hidden;
+}
+.auth__media::before{
+  content:"";
+  position:absolute; inset:-20%;
+  background:
+    radial-gradient(520px 360px at 72% 22%, rgba(255,255,255,.10), transparent 70%),
+    radial-gradient(760px 500px at 18% 82%, rgba(0,0,0,.22), transparent 72%);
+  pointer-events:none;
+}
+
+/* Illustration */
+.media__img{
+  position:relative;
+  z-index:1;
+  max-width:78%;
+  width:100%;
+  border-radius:20px;
+  object-fit:contain;
+  filter:saturate(.94) contrast(.94) brightness(.98);
+  opacity:.95;
+  box-shadow:0 10px 22px rgba(0,0,0,.22);
+}
+.media__overlay{
+  position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.15));
+  pointer-events:none;
+}
+
+/* =========================
+   Accessibility / Motion
+   ========================= */
+@media (prefers-reduced-motion: reduce){
+  .btn{ transition:none }
+}
+
+/* =========================
+   Responsive
+   ========================= */
+@media (max-width: 980px){
+  .auth{ grid-template-columns:1fr }
+  .auth__media{ order:2; padding:28px }
+  .auth__panel{ order:1; padding:36px 24px }
+  .panel__inner{ width:min(520px, 94%) }
+  .media__img{ max-width:94%; border-radius:14px }
+  .panel__title{ font-size:24px }
+}
