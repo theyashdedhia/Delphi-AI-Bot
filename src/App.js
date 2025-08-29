@@ -1,7 +1,15 @@
 import React from "react";
 import "./App.css";
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "./authConfig";
 
 export default function App() {
+  const { instance } = useMsal();
+
+  const handleMicrosoftLogin = () => {
+    instance.loginRedirect(loginRequest); // full-page redirect to Microsoft login
+  };
+
   return (
     <main className="app">
       {/* Brand hero on gradient */}
@@ -62,7 +70,7 @@ export default function App() {
           className="btn btn-outline"
           type="button"
           aria-label="Sign in with Microsoft"
-          onClick={() => alert("Microsoft OAuth")}
+          onClick={handleMicrosoftLogin}
         >
           <span
             style={{
@@ -91,17 +99,11 @@ export default function App() {
           }}
         >
           By continuing, you agree to the{" "}
-          <a
-            href="#"
-            style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}
-          >
+          <a href="#" style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}>
             Terms
           </a>{" "}
           and{" "}
-          <a
-            href="#"
-            style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}
-          >
+          <a href="#" style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}>
             Privacy Policy
           </a>
           .
