@@ -1,41 +1,24 @@
-// import React from "react";
-// import ReactDOM from "react-dom/client";
-// import "./index.css";
-// import App from "./App";
-// import reportWebVitals from "./reportWebVitals";
-
-// import { PublicClientApplication } from "@azure/msal-browser";
-// import { MsalProvider } from "@azure/msal-react";
-// import msalConfig from "./authConfig";
-
-// const msalInstance = new PublicClientApplication(msalConfig);
-
-// const root = ReactDOM.createRoot(document.getElementById("root"));
-// root.render(
-//   <React.StrictMode>
-//     <MsalProvider instance={msalInstance}>
-//       <App />
-//     </MsalProvider>
-//   </React.StrictMode>
-// );
 
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
-import App from "./App";
+import Login from "./Login";
 
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import msalConfig from "./authConfig";
+import { loginRequest } from "./authConfig";
 
 const msalInstance = new PublicClientApplication(msalConfig);
+
+// optional: expose a helper so Login.js can call it without importing hooks
+window.__msalLogin = () => msalInstance.loginRedirect(loginRequest);
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <MsalProvider instance={msalInstance}>
-      <App />
+      <Login />
     </MsalProvider>
   </React.StrictMode>
 );
-
