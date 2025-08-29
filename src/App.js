@@ -1,5 +1,6 @@
 import React from "react";
-import "./App.css";
+import "./Login.css";
+
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "./authConfig";
 
@@ -7,7 +8,7 @@ export default function App() {
   const { instance } = useMsal();
 
   const handleMicrosoftLogin = () => {
-    instance.loginRedirect(loginRequest); // full-page redirect to Microsoft login
+    instance.loginRedirect(loginRequest); //full-page redirect to Microsoft login
   };
 
   return (
@@ -90,24 +91,11 @@ export default function App() {
           <span>Microsoft</span>
         </button>
 
-        <p
-          style={{
-            marginTop: 12,
-            fontSize: 13,
-            color: "#ffffff",
-            textShadow: "0 1px 6px rgba(0,0,0,.18)",
-          }}
-        >
-          By continuing, you agree to the{" "}
-          <a href="#" style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}>
-            Terms
-          </a>{" "}
-          and{" "}
-          <a href="#" style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}>
-            Privacy Policy
-          </a>
-          .
-        </p>
+    
+        <p className="legal">
+  By continuing, you agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+</p>
+
       </section>
     </main>
   );
