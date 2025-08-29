@@ -1,8 +1,9 @@
+
 const msalConfig = {
   auth: {
-    clientId: "YOUR_CLIENT_ID",                             // from Azure App Registration
-    authority: "https://login.microsoftonline.com/common",  // or your tenant GUID/domain
-    redirectUri: window.location.origin,                    // must be in Azure → Authentication
+    clientId: "CLIENT_ID",                             // from Azure App Registration
+    authority: "https://login.microsoftonline.com/common",  // or your tenant GUID/domain or 'organizations'
+    redirectUri: window.location.origin,                    // must be listed in Azure → Authentication (SPA)
   },
   cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: false },
 };
