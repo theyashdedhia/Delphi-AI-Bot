@@ -1,5 +1,6 @@
 import React from "react";
-import "./Login.css";
+import Login from './pages/auth/Login';
+
 
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "./authConfig";

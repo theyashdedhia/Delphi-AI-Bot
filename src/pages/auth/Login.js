@@ -2,6 +2,8 @@
 import React from "react";
 import "./Login.css";
 
+
+
 function handleMicrosoftLogin() {
   if (typeof window !== "undefined" && typeof window.__msalLogin === "function") {
     return window.__msalLogin();
@@ -44,6 +46,9 @@ export default function Login() {
             By continuing, you agree to the <a href="#">Terms</a> and{" "}
             <a href="#">Privacy Policy</a>.
           </p>
+    
+
+
         </div>
       </section>
 
