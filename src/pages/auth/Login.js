@@ -1,17 +1,17 @@
 
 import React from "react";
+ import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
-
-
-function handleMicrosoftLogin() {
-  if (typeof window !== "undefined" && typeof window.__msalLogin === "function") {
-    return window.__msalLogin();
-  }
-  alert("Microsoft OAuth (stub) — integrate MSAL when ready.");
-}
-
 export default function Login() {
+  const navigate = useNavigate();
+
+  const handleMicrosoftLogin = () => {
+    // Placeholder login logic
+    console.log('Login clicked');
+    // TODO: Add actual login logic here
+    navigate('/dashboard');
+  };
   return (
     <main className="auth" role="main">
       {/* LEFT: content column */}
