@@ -126,11 +126,6 @@ const Documents = () => {
 
   const filtered = useMemo(() => files.filter(f => f.key.toLowerCase().includes(search.toLowerCase())), [files, search]);
 
-  const sortLabel = useMemo(()=>{
-    if(!files.length) return 'Sort';
-    return 'Sort';
-  },[files]);
-
   const sortFiles = (mode) => {
     setFiles(f => {
       const arr = [...f];
