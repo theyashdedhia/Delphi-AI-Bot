@@ -3,7 +3,7 @@ import './Documents.css';
 import { alpha, styled } from '@mui/material/styles';
 import {
   Box, Stack, Typography, Button, IconButton, TextField, Chip, Tooltip, Divider,
-  Dialog, DialogTitle, DialogContent, DialogActions, Tabs, Tab, Grid, LinearProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions, Tabs, Tab, LinearProgress,
   Menu, MenuItem, Paper, Badge, InputAdornment, Avatar, Skeleton, Alert, Snackbar, Fade,
   Popover
 } from '@mui/material';
@@ -23,6 +23,9 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import DonutLargeIcon from '@mui/icons-material/DonutLarge';
+import PendingIcon from '@mui/icons-material/Pending';
+import ScatterPlotIcon from '@mui/icons-material/ScatterPlot';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -217,19 +220,28 @@ const Documents = () => {
   };
 
   return (
-    <Stack direction="column" height="100%" spacing={4} className="documents-container" position="relative">
+  <Stack direction="column" height="100%" spacing={{ xs:2.5, md:4 }} className="documents-container" position="relative">
       <Box className="documents-boundary">
         <Paper elevation={0} className="documents-header-panel" onDragEnter={handleDrag}>
-        <Stack direction={{ xs:'column', md:'row' }} spacing={3} alignItems={{ xs:'flex-start', md:'center' }} justifyContent="space-between" className="documents-header" sx={{ pb:1 }}>
-          <Box>
-            <Typography variant="h4" fontWeight={700} sx={{ background: 'linear-gradient(90deg,#4f46e5,#2563eb)', WebkitBackgroundClip:'text', color:'transparent', letterSpacing:'-0.5px', mb:.5 }}>Documents Vault</Typography>
-            <Typography variant="body2" color="text.secondary">Securely manage your knowledge base. Upload PDFs, monitor embedding status & curate metadata.</Typography>
+  <Stack spacing={1.4} className="documents-header" sx={{ pb:1 }}>
+          <Box sx={{ display:'flex', flexDirection:{ xs:'column', sm:'row' }, alignItems:{ xs:'flex-start', sm:'flex-start' }, justifyContent:'space-between', gap:{ xs:1.25, sm:2 }, width:'100%' }}>
+            <Typography variant="h4" fontWeight={700} sx={{ background: 'linear-gradient(90deg,#4f46e5,#2563eb)', WebkitBackgroundClip:'text', color:'transparent', letterSpacing:'-0.5px' }}>Documents Vault</Typography>
+            <Box className="documents-stats" sx={{ ml:{ xs:0, sm:'auto' } }}>
+            <div className="documents-stat">
+              <span className="documents-stat-label">Total Docs</span>
+              <span className="documents-stat-value"><span className="documents-stat-icon"><DonutLargeIcon sx={{ fontSize:15 }} /></span>{files.length}</span>
+            </div>
+            <div className="documents-stat">
+              <span className="documents-stat-label">Processing</span>
+              <span className={`documents-stat-value ${files.some(f=>f.status==='processing')? 'processing-active':''}`}><span className="documents-stat-icon"><PendingIcon sx={{ fontSize:15 }} /></span>{files.filter(f=>f.status==='processing').length}</span>
+            </div>
+            <div className="documents-stat">
+              <span className="documents-stat-label">Vectors</span>
+              <span className="documents-stat-value vectors"><span className="documents-stat-icon"><ScatterPlotIcon sx={{ fontSize:15 }} /></span>{files.reduce((a,c)=> a+(c.embeddings||0),0).toLocaleString()}</span>
+            </div>
           </Box>
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" justifyContent="flex-end" sx={{ width:{ xs:'100%', md:'auto' } }}>
-            <Chip label={`Total ${files.length}`} size="small" variant="outlined" />
-            <Chip label={`Processing ${files.filter(f=>f.status==='processing').length}`} size="small" color={files.some(f=>f.status==='processing')? 'warning':'default'} variant="outlined" />
-            <Chip label={`Vectors ${files.reduce((a,c)=> a+(c.embeddings||0),0).toLocaleString()}`} size="small" variant="outlined" />
-          </Stack>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth:960 }}>Securely manage your knowledge base. <br/>Upload PDFs, monitor embedding status & curate metadata.</Typography>
         </Stack>
         <Divider sx={{ my:1.25 }} />
   <Stack direction={{ xs:'column', sm:'row' }} spacing={1.25} alignItems={{ xs:'stretch', sm:'center' }}>
@@ -268,18 +280,15 @@ const Documents = () => {
   <ScrollArea className="documents-content">
     <Box className="documents-boundary">
         {loading ? (
-          <Grid container spacing={2.2}>
+          <div className="documents-grid">
             {Array.from({length:6}).map((_,i)=>(
-              <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
-                <Skeleton variant="rounded" height={180} animation="wave" />
-              </Grid>
+              <Skeleton key={i} variant="rounded" height={180} animation="wave" />
             ))}
-          </Grid>
+          </div>
         ) : filtered.length ? (
-          <Grid container spacing={2.2} sx={{ mt:0.25 }}>
+          <div className="documents-grid">
             {filtered.map(file => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={file.key}>
-                <MotionPaper component={DocumentCard} layout initial={{opacity:0, y:14}} animate={{opacity:1, y:0}} transition={{type:'spring', stiffness:300, damping:26}}>
+              <MotionPaper key={file.key} component={DocumentCard} layout initial={{opacity:0, y:14}} animate={{opacity:1, y:0}} transition={{type:'spring', stiffness:300, damping:26}}>
                   {/* Removed animated top processing bar per request; status chip still indicates processing */}
                   <Stack direction="row" spacing={1.2} alignItems="flex-start" sx={{ mb:1 }}>
                     <Avatar variant="rounded" sx={{ width:44, height:52, bgcolor:'#eef2ff', color:'#2563eb', boxShadow:'inset 0 0 0 1px #dbe4ff' }}>
@@ -289,30 +298,24 @@ const Documents = () => {
                       <Tooltip title={file.key} placement="top" enterDelay={600}>
                         <Typography variant="subtitle2" fontWeight={600} sx={{ lineHeight:1.25, height:'2.5em', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{prettyName(file.key)}</Typography>
                       </Tooltip>
-                      <Stack direction="row" spacing={0.6} sx={{ mt:.65, '& .MuiChip-root':{ height:22, borderRadius:14, fontSize:10, px:.4, fontWeight:500 } }}>
-                        <Chip size="small" label={formatBytes(file.size)} sx={{ bgcolor:'rgba(148,163,184,0.18)', border:'1px solid rgba(148,163,184,0.35)' }} />
-                        <Chip size="small" label={timeAgo(file.uploadedAt)} sx={{ bgcolor:'rgba(148,163,184,0.18)', border:'1px solid rgba(148,163,184,0.35)' }} />
-                        {file.status==='ready' ? (
-                          <Chip size="small" label={file.status} sx={{ bgcolor:'rgba(16,185,129,0.18)', color:'#047857', border:'1px solid rgba(16,185,129,0.35)' }} />
-                        ) : (
-                          <Chip size="small" label={file.status} sx={{ bgcolor:'rgba(251,146,60,0.20)', color:'#b45309', border:'1px solid rgba(251,146,60,0.45)' }} />
-                        )}
-                      </Stack>
+                      <div className="document-meta">
+                        <span className="meta-pill size">{formatBytes(file.size)}</span>
+                        <span className="meta-pill uploaded">{timeAgo(file.uploadedAt)}</span>
+                        <span className={`meta-pill status-${file.status}`}>{file.status}</span>
+                        {file.embeddings ? (
+                          <span className="meta-pill vectors">{file.embeddings.toLocaleString()}</span>
+                        ) : null}
+                      </div>
                     </Box>
-                    <Stack spacing={1} alignItems="flex-end">
-                      <IconButton size="small" onClick={(e)=> { setCardMenuAnchor(e.currentTarget); setCardMenuFile(file);} } sx={{ mt:-0.5 }}><MoreVertIcon fontSize="small" /></IconButton>
-                      {file.embeddings ? <Chip size="small" label={file.embeddings.toLocaleString()} sx={{ fontSize:10, fontWeight:600, background:'linear-gradient(90deg,#eef2ff,#e0e7ff)', color:'#1e3a8a', border:'1px solid rgba(79,70,229,0.35)', mt:0.5 }} />: <Box sx={{ height:24 }} />}
-                    </Stack>
+                    <IconButton size="small" onClick={(e)=> { setCardMenuAnchor(e.currentTarget); setCardMenuFile(file);} } sx={{ mt:-0.5, alignSelf:'flex-start' }}><MoreVertIcon fontSize="small" /></IconButton>
                   </Stack>
-                  <Stack direction="row" alignItems="center" sx={{ mt:'auto', pt:1.05, borderTop:'1px solid rgba(148,163,184,0.25)' }}>
+                  <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mt:'auto', pt:1.05, borderTop:'1px solid rgba(148,163,184,0.25)' }}>
                     <Button size="small" variant="outlined" onClick={()=>openEmbeddings(file)} sx={{ textTransform:'none', fontSize:12, px:1.7, fontWeight:600, borderColor:'rgba(79,70,229,0.4)', bgcolor:'rgba(99,102,241,0.08)', '&:hover':{ borderColor:'rgba(79,70,229,0.6)', bgcolor:'rgba(99,102,241,0.15)' } }}>Embeddings</Button>
-                    <Box flexGrow={1} />
-                    <Button size="small" variant="text" color="error" onClick={()=>deleteFile(file.key)} sx={{ textTransform:'none', fontSize:12, fontWeight:600, '&:hover':{ bgcolor:'rgba(239,68,68,0.10)' } }}>Delete</Button>
+                    <Button size="small" variant="text" color="error" onClick={()=>deleteFile(file.key)} sx={{ textTransform:'none', fontSize:12, fontWeight:600, ml:'auto', '&:hover':{ bgcolor:'rgba(239,68,68,0.10)' } }}>Delete</Button>
                   </Stack>
                 </MotionPaper>
-              </Grid>
             ))}
-          </Grid>
+          </div>
         ) : (
           <Stack alignItems="center" justifyContent="center" py={12} spacing={2} sx={{ opacity:.85 }}>
             <AutoAwesomeIcon sx={{ fontSize:84, color:'text.disabled' }} />

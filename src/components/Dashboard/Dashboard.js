@@ -1,14 +1,36 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import './Dashboard.css';
 
 const Dashboard = ({ children }) => {
+  // Desktop collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Mobile detection + open state
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Listen for viewport resize to toggle mobile / desktop modes
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        // Ensure mobile overlay closed when returning to desktop
+        setMobileSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const navigate = useNavigate();
 
   const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
+    if (isMobile) {
+      setMobileSidebarOpen(o => !o);
+    } else {
+      setSidebarCollapsed(c => !c);
+    }
   };
 
   const handleSignOut = () => {
@@ -20,10 +42,15 @@ const Dashboard = ({ children }) => {
 
   return (
     <div className="dashboard">
-      <Sidebar 
-        collapsed={sidebarCollapsed} 
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileSidebarOpen}
+        isMobile={isMobile}
         onToggle={toggleSidebar}
       />
+      {isMobile && mobileSidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} aria-hidden="true" />
+      )}
       <div className={`dashboard-content ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <header className="dashboard-header">
           <button 

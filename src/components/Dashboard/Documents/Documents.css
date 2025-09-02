@@ -91,28 +91,122 @@
   box-shadow: 0 2px 4px rgba(15,23,42,0.06);
 }
 
+/* Compact professional stats panel */
+.documents-stats {
+  display: flex;
+  align-items: stretch;
+  gap: 0.85rem;
+  padding: .55rem .9rem;
+  background: linear-gradient(135deg, rgba(255,255,255,0.78), rgba(248,250,252,0.82));
+  border: 1px solid rgba(148,163,184,0.28);
+  box-shadow: 0 4px 12px -4px rgba(15,23,42,0.12), 0 0 0 1px rgba(255,255,255,0.4) inset;
+  border-radius: 18px;
+  backdrop-filter: blur(18px) saturate(1.3);
+}
+.documents-stat { display:flex; flex-direction:column; min-width:78px; position:relative; }
+.documents-stat + .documents-stat:before { content:""; position:absolute; left:-0.45rem; top:8%; bottom:8%; width:1px; background:linear-gradient(rgba(148,163,184,0.22), rgba(148,163,184,0.10)); }
+.documents-stat-label { font-size:10px; line-height:1; letter-spacing:.55px; font-weight:600; text-transform:uppercase; color:#64748b; margin-bottom:4px; }
+.documents-stat-value { font-size:.95rem; line-height:1; font-weight:600; display:flex; align-items:center; gap:4px; color:#1e293b; }
+.documents-stat-value.processing-active { color:#b45309; }
+.documents-stat-value.processing-active:before { content:""; position:absolute; inset:auto auto 2px 6px; }
+.documents-stat-value.vectors { background: linear-gradient(90deg,#6366f1,#2563eb); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.documents-stat-icon { width:16px; height:16px; display:flex; align-items:center; justify-content:center; color:#6366f1; }
+.documents-stat-value.processing-active .documents-stat-icon { color:#d97706; }
+
+@media (max-width: 900px) {
+  .documents-stats { width:100%; justify-content:space-between; }
+  .documents-stat { min-width:0; flex:1; }
+  .documents-stat + .documents-stat:before { left:0; }
+}
+@media (max-width: 520px) {
+  .documents-stats { flex-wrap:wrap; row-gap:.75rem; }
+  .documents-stat { flex:1 1 30%; }
+  .documents-stat + .documents-stat:before { display:none; }
+}
+
+/* ==========================================
+   Responsive Adjustments
+   ========================================== */
+@media (max-width: 1200px) {
+  .documents-boundary { padding: 0 1.25rem; }
+}
+
+@media (max-width: 900px) {
+  .documents-boundary { padding: 0 1rem; }
+  .documents-header h2 { font-size: 1.55rem; }
+  .documents-header p { font-size: 0.9rem; }
+  .documents-header { margin-bottom: 1.25rem; }
+  .documents-header-panel { border-radius: 20px; padding: .85rem .95rem .65rem; }
+  .documents-metrics { gap: .5rem; }
+  .documents-metric-chip { font-size: .6rem; padding: .35rem .7rem; }
+}
+
+@media (max-width: 600px) {
+  .documents-boundary { padding: 0 .85rem; }
+  .documents-header-panel { padding: .75rem .85rem .55rem; }
+  .documents-header h2 { font-size: 1.35rem; letter-spacing: -.5px; }
+  .documents-header p { font-size: .8rem; line-height: 1.3; }
+  .documents-metric-chip { font-size: .55rem; padding: .3rem .55rem; }
+  .documents-toolbar { gap: .6rem; padding: .6rem .75rem; }
+}
+
+@media (max-width: 430px) {
+  .documents-boundary { padding: 0 .65rem; }
+  .documents-header h2 { font-size: 1.2rem; }
+  .documents-header-panel { border-radius: 16px; }
+}
+
 
 .documents-content {
   flex: 1;
   min-height: 0;
   padding-bottom: 2.2rem;
   /* horizontal padding applied inline in component for exact match with header internal padding */
+  /* Hide scrollbar while preserving scroll */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+/Edge Legacy */
+}
+
+.documents-content::-webkit-scrollbar { /* WebKit */
+  width: 0;
+  height: 0;
+}
+
+/* Ensure inner boundary spans full width now that scrollbar is hidden */
+.documents-content > .documents-boundary {
+  width: 100%;
+  margin-right: 0;
+}
+
+/* Grid for document cards */
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.75rem; /* ~28px close to prior 2.2 spacing units */
+  margin-top: .25rem;
+  align-items: stretch;
+}
+
+/* Document card metadata pills */
+.document-meta { display:flex; align-items:center; gap:.45rem; flex-wrap:wrap; margin-top:.55rem; }
+.meta-pill { position:relative; padding:.35rem .65rem; line-height:1; font-size:11px; font-weight:500; border-radius:14px; background:rgba(148,163,184,.18); color:#334155; border:1px solid rgba(148,163,184,.35); display:inline-flex; align-items:center; }
+.meta-pill.status-ready { background:rgba(16,185,129,.18); color:#047857; border-color:rgba(16,185,129,.35); }
+.meta-pill.status-processing { background:rgba(251,146,60,.18); color:#b45309; border-color:rgba(251,146,60,.45); }
+.meta-pill.vectors { background:linear-gradient(90deg,#eef2ff,#e0e7ff); color:#1e3a8a; border:1px solid rgba(79,70,229,.35); font-weight:600; }
+.meta-pill.status-processing:before { content:""; width:6px; height:6px; border-radius:50%; background:#fb923c; margin-right:5px; box-shadow:0 0 0 4px rgba(251,146,60,.25); animation:pulseProc 1.6s infinite ease-in-out; }
+
+@keyframes pulseProc { 0%{transform:scale(.7); opacity:.9;} 70%{transform:scale(1); opacity:.15;} 100%{transform:scale(.7); opacity:.9;} }
+
+@media (max-width: 1100px) {
+  .documents-grid { gap: 1.5rem; }
+}
+@media (max-width: 900px) {
+  .documents-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .documents-grid { grid-template-columns: 1fr; }
 }
 
 /* Legacy placeholder styles removed in favor of interactive grid */
 
-/* Scrollbar subtle styling */
-.documents-content::-webkit-scrollbar {
-  width: 10px;
-}
-.documents-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-.documents-content::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg,#cbd5e1,#94a3b8);
-  border-radius: 20px;
-  border: 3px solid #f8fafc;
-}
-.documents-content::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg,#94a3b8,#64748b);
-}
+/* (Scrollbar styles removed per request to hide scrollbar) */
