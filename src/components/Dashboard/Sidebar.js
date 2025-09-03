@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 
-const Sidebar = ({ collapsed, onToggle }) => {
+const Sidebar = ({ collapsed, mobileOpen, isMobile, onToggle }) => {
   const location = useLocation();
   
   const menuItems = [
@@ -32,8 +32,14 @@ const Sidebar = ({ collapsed, onToggle }) => {
     }
   ];
 
+  const classNames = [
+    'sidebar',
+    collapsed && !isMobile ? 'collapsed' : '',
+    isMobile && mobileOpen ? 'mobile-open' : ''
+  ].filter(Boolean).join(' ');
+
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside className={classNames}>
       <div className="sidebar-header">
         <div className="logo">
           {!collapsed && <span>Delphi</span>}
