@@ -309,8 +309,11 @@ const Documents = () => {
                     </Box>
                     <IconButton size="small" onClick={(e)=> { setCardMenuAnchor(e.currentTarget); setCardMenuFile(file);} } sx={{ mt:-0.5, alignSelf:'flex-start' }}><MoreVertIcon fontSize="small" /></IconButton>
                   </Stack>
-                  <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mt:'auto', pt:1.05, borderTop:'1px solid rgba(148,163,184,0.25)' }}>
-                    <Button size="small" variant="outlined" onClick={()=>openEmbeddings(file)} sx={{ textTransform:'none', fontSize:12, px:1.7, fontWeight:600, borderColor:'rgba(79,70,229,0.4)', bgcolor:'rgba(99,102,241,0.08)', '&:hover':{ borderColor:'rgba(79,70,229,0.6)', bgcolor:'rgba(99,102,241,0.15)' } }}>Embeddings</Button>
+                  <Stack direction="row" alignItems="center" spacing={1.25} sx={{ 
+                    mt:'auto', pt:1.05, borderTop:'1px solid rgba(148,163,184,0.25)',
+                    justifyContent: "space-between",
+                  }}>
+                    <Button size="small" variant="outlined" onClick={()=>openEmbeddings(file)} sx={{ textTransform:'none', fontSize:12, px:1.7, fontWeight:600, borderColor:'rgba(79,70,229,0.4)', bgcolor:'rgba(99,102,241,0.08)', '&:hover':{ borderColor:'rgba(79,70,229,0.6)', bgcolor:'rgba(99,102,241,0.15)' } }}>Edit Embeddings</Button>
                     <Button size="small" variant="text" color="error" onClick={()=>deleteFile(file.key)} sx={{ textTransform:'none', fontSize:12, fontWeight:600, ml:'auto', '&:hover':{ bgcolor:'rgba(239,68,68,0.10)' } }}>Delete</Button>
                   </Stack>
                 </MotionPaper>
