@@ -1,0 +1,147 @@
+.dashboard {
+  display: flex;
+  height: 100vh;
+  background: #f8fafc;
+  background-attachment: fixed;
+}
+
+.dashboard-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s ease;
+  margin-left: 250px;
+}
+
+.dashboard-content.collapsed {
+  margin-left: 70px;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  height: 70px;
+}
+
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background-color: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s ease;
+  margin-right: 1rem;
+}
+
+.sidebar-toggle:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+.header-content h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.sign-out-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.sign-out-button:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+.sign-out-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dashboard-main {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  position: relative;
+  background:
+    linear-gradient(115deg, rgba(79,70,229,0.06), rgba(37,99,235,0.04) 38%, rgba(255,255,255,0.15) 72%),
+    /* repeating-linear-gradient(45deg, rgba(148,163,184,0.13) 10 1px, transparent 1px 100px), */
+    linear-gradient(#f8fafc,#eef2f7);
+}
+
+.dashboard-main:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(59,130,246,0.18), transparent 55%),
+    radial-gradient(circle at 15% 85%, rgba(99,102,241,0.16), transparent 60%);
+  mix-blend-mode: multiply;
+  opacity: .9;
+}
+
+/* Mobile sidebar overlay */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.45);
+  backdrop-filter: blur(2px);
+  z-index: 900; /* below the sidebar (1000) but above content */
+  animation: fadeIn .25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dashboard-content {
+    margin-left: 0;
+  }
+  
+  .dashboard-content.collapsed {
+    margin-left: 0;
+  }
+  
+  .dashboard-header {
+    padding: 0.75rem 1rem;
+    gap: .5rem;
+  }
+  
+  .dashboard-main {
+    padding: 1rem;
+  }
+
+  .header-content h1 {
+    font-size: 1.15rem;
+  }
+
+  .sign-out-button span { display: none; }
+  .sign-out-button { padding: 0.5rem; }
+}
