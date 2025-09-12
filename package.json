@@ -2,6 +2,7 @@
   "name": "delphi-ai-bot",
   "version": "0.2.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@azure/msal-browser": "^4.21.1",
     "@azure/msal-react": "^3.0.19",
