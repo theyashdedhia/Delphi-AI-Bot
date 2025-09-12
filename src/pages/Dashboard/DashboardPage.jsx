@@ -1,8 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Dashboard from '../../components/Dashboard/Dashboard';
-import Chat from '../../components/Dashboard/Chat/Chat';
-import Documents from '../../components/Dashboard/Documents/Documents';
+import Dashboard from '../../components/Dashboard/Dashboard.jsx';
+import Chat from '../../components/Dashboard/Chat/Chat.jsx';
+import Documents from '../../components/Dashboard/Documents/Documents.jsx';
 
 const DashboardPage = () => {
   return (
