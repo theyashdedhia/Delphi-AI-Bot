@@ -1,10 +1,9 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import DashboardPage from './pages/Dashboard/DashboardPage';
-import Login from './pages/auth/Login';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import DashboardPage from './pages/Dashboard/DashboardPage.jsx';
+import Login from './pages/auth/Login.jsx';
 
 export default function App() {
-
   return (
     <Router>
       <Routes>

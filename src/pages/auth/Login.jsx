@@ -1,31 +1,22 @@
-
-import React from "react";
- import { useNavigate } from "react-router-dom";
-import "./Login.css";
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import './Login.css';
 
 export default function Login() {
   const navigate = useNavigate();
 
   const handleMicrosoftLogin = () => {
-    // Placeholder login logic
     console.log('Login clicked');
-    // TODO: Add actual login logic here
     navigate('/dashboard');
   };
   return (
     <main className="auth" role="main">
-      {/* LEFT: content column */}
       <section className="auth__panel" aria-labelledby="welcome-title">
         <div className="panel__inner">
-          {/* Brand wordmark (no logo) */}
           <div className="brandword">DELPHI</div>
           <p className="brandtagline">Decision insights for Lifeblood</p>
-
-          {/* Headings */}
           <h1 id="welcome-title" className="panel__title">Welcome back</h1>
           <p className="panel__sub strong">Please sign in to continue</p>
-
-          {/* Microsoft SSO */}
           <button
             type="button"
             className="btn btn--microsoft btn--maroon-border"
@@ -40,19 +31,11 @@ export default function Login() {
             </span>
             <span className="btn__text">Sign in with Microsoft</span>
           </button>
-
-          {/* Legal */}
           <p className="legal">
-            By continuing, you agree to the <a href="#">Terms</a> and{" "}
-            <a href="#">Privacy Policy</a>.
+            By continuing, you agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
           </p>
-    
-
-
         </div>
       </section>
-
-      {/* RIGHT: media column */}
       <aside className="auth__media" aria-label="Brand illustration">
         <img
           className="media__img"
