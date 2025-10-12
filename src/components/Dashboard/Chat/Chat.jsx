@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined';
+import { sendChatMessage } from '../../../api/chat';
 import './Chat.css';
 
 const Chat = () => {
@@ -19,16 +20,6 @@ const Chat = () => {
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
-  const simulateAssistantResponse = (conversation) => {
-    const lastUser = [...conversation].reverse().find((m) => m.role === 'user');
-    const summary = lastUser ? `Summary: ${lastUser.content.slice(0, 100)}...` : 'Summary unavailable.';
-    const content = 'This is a placeholder response. Integrate with your backend to fetch real, sourced insights.';
-    const citations = [
-      { title: 'Lifeblood Source A', url: 'https://example.com/source-a' },
-      { title: 'Lifeblood Source B', url: 'https://example.com/source-b' }
-    ];
-    return { summary, content, citations };
-  };
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -61,14 +52,39 @@ const Chat = () => {
     abortRef.current = controller;
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      const data = simulateAssistantResponse(nextMessages.map(({ role, content }) => ({ role, content })));
+      const data = await sendChatMessage(nextMessages.map(({ role, content }) => ({ role, content })));
+      
+      let responseContent = '';
+      let responseSummary = '';
+      let responseCitations = [];
+      
+      if (data.content) {
+        responseContent = data.content;
+        responseSummary = data.summary || '';
+        responseCitations = Array.isArray(data.citations) ? data.citations : [];
+      } else if (data.body) {
+        try {
+          const parsedBody = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+          responseContent = parsedBody.content || parsedBody.message || 'Response received';
+          responseSummary = parsedBody.summary || '';
+          responseCitations = Array.isArray(parsedBody.citations) ? parsedBody.citations : [];
+        } catch (e) {
+          responseContent = data.body || 'Response received';
+        }
+      } else if (data.message) {
+        responseContent = data.message;
+        responseSummary = 'Simple response received';
+      } else {
+        responseContent = 'Response received from server';
+        responseSummary = 'Chat response';
+      }
+      
       const assistantMessage = {
         id: `a_${Date.now()}`,
         role: 'assistant',
-        content: data.content || '',
-        summary: data.summary || '',
-        citations: Array.isArray(data.citations) ? data.citations : [],
+        content: responseContent,
+        summary: responseSummary,
+        citations: responseCitations,
         liked: null
       };
       setMessages((prev) => [...prev, assistantMessage]);
