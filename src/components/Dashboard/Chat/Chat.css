@@ -5,11 +5,12 @@
   flex-direction: column;
   height: 100%;
   padding: var(--space);
-  background: var(--surface);
+  background: var(--brand-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   font-family: inherit;
+  transition: all 0.3s ease;
 }
 
 /* Header */
@@ -53,7 +54,7 @@
   margin-left: auto;
 }
 .message-row.assistant .bubble {
-  background: var(--surface);
+  background: var(--brand-surface);
   border: 1px solid var(--border);
   border-top-left-radius: 6px;
   box-shadow: var(--shadow);
@@ -90,9 +91,10 @@
   display: inline-flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--brand-surface);
   color: var(--text-2);
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 .icon-button.active { background: var(--brand-maroon-100); border-color: var(--brand-maroon); color: var(--brand-maroon); }
 
@@ -112,7 +114,8 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 14px; font-size: 1rem; font-family: inherit;
-  background: var(--surface); color: var(--text-1);
+  background: var(--brand-surface); color: var(--text-1);
+  transition: all 0.3s ease;
 }
 .chat-input input[type="text"]:focus{
   border-color: var(--brand-maroon);
@@ -130,4 +133,323 @@
 .error-banner {
   margin-top: .75rem; background:#fef2f2; color:#b91c1c;
   border:1px solid #fecaca; border-radius:10px; padding:.5rem .75rem;
+}
+
+/* =========================
+   Responsive Design
+   ========================= */
+
+/* Ultra-wide screens (1920px+) */
+@media (min-width: 1920px) {
+  .chat-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .chat-placeholder {
+    max-width: 600px;
+    padding: 4rem;
+  }
+  .bubble {
+    max-width: 80%;
+  }
+  .chat-header h2 {
+    font-size: 1.4rem;
+  }
+  .chat-header p {
+    font-size: 1.1rem;
+  }
+}
+
+/* Large screens (1400px - 1919px) */
+@media (min-width: 1400px) and (max-width: 1919px) {
+  .chat-container {
+    padding: 1.5rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .chat-placeholder {
+    max-width: 500px;
+    padding: 3rem;
+  }
+  .bubble {
+    max-width: 75%;
+  }
+  .chat-header h2 {
+    font-size: 1.3rem;
+  }
+}
+
+/* Desktop (1200px - 1399px) */
+@media (max-width: 1399px) {
+  .bubble {
+    max-width: 70%;
+  }
+}
+
+/* Laptop (1024px - 1199px) */
+@media (max-width: 1199px) {
+  .chat-container {
+    padding: 1.25rem;
+  }
+  .chat-placeholder {
+    max-width: 450px;
+    padding: 2.5rem;
+  }
+  .bubble {
+    max-width: 65%;
+  }
+  .chat-header h2 {
+    font-size: 1.1rem;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) {
+  .chat-container {
+    padding: 1rem;
+  }
+  .chat-placeholder {
+    max-width: 400px;
+    padding: 2rem;
+  }
+  .bubble {
+    max-width: 60%;
+  }
+  .chat-header h2 {
+    font-size: 1rem;
+  }
+  .chat-header p {
+    font-size: 0.9rem;
+  }
+  .message-row {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+  .bubble {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+}
+
+/* Mobile Large (480px - 767px) */
+@media (max-width: 767px) {
+  .chat-container {
+    padding: 0.75rem;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+  
+  .chat-header {
+    margin-bottom: 1rem;
+  }
+  
+  .chat-header h2 {
+    font-size: 0.95rem;
+  }
+  
+  .chat-header p {
+    font-size: 0.85rem;
+  }
+  
+  .chat-placeholder {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+  
+  .chat-placeholder h3 {
+    font-size: 1.25rem;
+  }
+  
+  .chat-placeholder p {
+    font-size: 0.9rem;
+  }
+  
+  .message-row {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  
+  .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+  
+  .bubble {
+    max-width: 85%;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    border-radius: 12px;
+  }
+  
+  .message-row.user .bubble {
+    border-top-right-radius: 4px;
+  }
+  
+  .message-row.assistant .bubble {
+    border-top-left-radius: 4px;
+  }
+  
+  .chat-input {
+    gap: 0.4rem;
+    padding-top: 8px;
+  }
+  
+  .chat-input input[type="text"] {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+  
+  .send-button, .stop-button {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+  
+  .icon-button {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .feedback-row {
+    gap: 0.4rem;
+  }
+}
+
+/* Mobile Small (320px - 479px) */
+@media (max-width: 479px) {
+  .chat-container {
+    padding: 0.5rem;
+  }
+  
+  .chat-header h2 {
+    font-size: 0.9rem;
+  }
+  
+  .chat-header p {
+    font-size: 0.8rem;
+  }
+  
+  .chat-placeholder {
+    padding: 1rem;
+  }
+  
+  .chat-placeholder h3 {
+    font-size: 1.1rem;
+  }
+  
+  .chat-placeholder p {
+    font-size: 0.85rem;
+  }
+  
+  .message-row {
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  
+  .avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+  
+  .bubble {
+    max-width: 90%;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+    border-radius: 10px;
+  }
+  
+  .chat-input input[type="text"] {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+  
+  .send-button, .stop-button {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .icon-button {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .bubble .citations {
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+  
+  .bubble .citations-label {
+    font-size: 0.8rem;
+  }
+  
+  .bubble .citations ul {
+    padding-left: 16px;
+  }
+}
+
+/* Extra small screens (below 320px) */
+@media (max-width: 319px) {
+  .chat-container {
+    padding: 0.25rem;
+  }
+  
+  .chat-header h2 {
+    font-size: 0.85rem;
+  }
+  
+  .chat-header p {
+    font-size: 0.75rem;
+  }
+  
+  .chat-placeholder h3 {
+    font-size: 1rem;
+  }
+  
+  .chat-placeholder p {
+    font-size: 0.8rem;
+  }
+  
+  .avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+  }
+  
+  .bubble {
+    padding: 5px 6px;
+    font-size: 0.8rem;
+  }
+  
+  .chat-input input[type="text"] {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+  
+  .send-button, .stop-button {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+}
+/* Make assistant body text theme-aware (same tone as summary) */
+.message-row.assistant .bubble .message-content {
+  color: var(--text-1);
+}
+
+/* If your variables aren't wired for dark mode, harden it: */
+body.dark-mode .message-row.assistant .bubble .message-content {
+  color: #e5e7eb;
+}
+
+/* Optional: make the “hint” / muted lines clearly secondary in both modes */
+.message-row.assistant .bubble .hint,
+.message-row.assistant .bubble .message-content .muted {
+  color: var(--text-2);
 }

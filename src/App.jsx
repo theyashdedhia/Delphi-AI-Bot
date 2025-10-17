@@ -1,9 +1,8 @@
-
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import DashboardPage from "./pages/Dashboard/DashboardPage.jsx";
 import Login from "./pages/auth/Login.jsx";
-
+import { DarkModeProvider } from './contexts/DarkModeContext.jsx';
 import { MsalAuthenticationTemplate, useMsal } from "@azure/msal-react";
 import { InteractionType } from "@azure/msal-browser";
 import { loginRequest } from "./authConfig";
@@ -22,6 +21,7 @@ function LogoutNow() {
 
 export default function App() {
   return (
+  <DarkModeProvider>
     <Router>
       <Routes>
         {/* Public route */}
@@ -56,5 +56,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
+  </DarkModeProvider>
   );
 }
