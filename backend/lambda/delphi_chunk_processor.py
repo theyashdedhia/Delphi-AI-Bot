@@ -28,8 +28,15 @@ from typing import Any, Dict, List, Callable, Optional
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError, EndpointConnectionError, ReadTimeoutError
+from opensearchpy import OpenSearch, RequestsHttpConnection, helpers
+from requests_aws4auth import AWS4Auth
 
 AWS_REGION = os.environ.get("AWS_REGION", "ap-southeast-2")
+OPENSEARCH_HOST = os.environ.get(
+    "OPENSEARCH_HOST",
+    "6qqi01llu92mgfhf5suk.ap-southeast-2.aoss.amazonaws.com"
+)
+OPENSEARCH_INDEX = os.environ.get("OPENSEARCH_INDEX", "document-vault-index")
 
 # Configure clients with short network timeouts to avoid hangs
 _tx_config = Config(
@@ -48,7 +55,7 @@ ddb = boto3.resource("dynamodb")
 AGENTIC_LLM_MODEL = os.environ.get(
     "AGENTIC_LLM_MODEL", "anthropic.claude-3-5-sonnet-20241022-v2:0"
 )
-
+EMBED_MODEL = os.environ.get("EMBED_MODEL", "amazon.titan-embed-text-v2:0")
 
 def chunk_text_with_offsets(
     lines: List[Dict[str, Any]], chunk_size: int = 800, overlap: int = 100
@@ -419,12 +426,26 @@ def _extract_textract_lines(
         )
     return text_lines
 
+def get_opensearch_client():
+    credentials = boto3.Session().get_credentials()
+    awsauth = AWS4Auth(
+        credentials.access_key,
+        credentials.secret_key,
+        AWS_REGION,
+        "es",
+        session_token=credentials.token
+    )
+    return OpenSearch(
+        hosts=[{"host": OPENSEARCH_HOST, "port": 443}],
+        http_auth=awsauth,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection
+    )
+
 
 def lambda_handler(event, context):
     # SQS event -> Records[...]
-    print(
-        "Something good after a long time!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    )
     records = event.get("Records", []) or []
     table = ddb.Table(CHUNKS_TABLE)
     jt = ddb.Table(JOBS_TABLE) if JOBS_TABLE else None
@@ -505,6 +526,7 @@ def lambda_handler(event, context):
 
             _update_job_state(jt, job_id, state="storing_chunks", progress=85)
             total = max(1, len(chunks))
+            opensearch_results = []
             last_emitted_progress = 85
             for idx, c in enumerate(chunks):
                 chunk_id = str(uuid.uuid4())
@@ -512,6 +534,16 @@ def lambda_handler(event, context):
                 summary = c.get("summary") or title
                 text = c.get("text") or ""
                 _put_chunk(table, chunk_id, key, title, summary, text)
+                emb_text = "Chunk Title: {}\nChunk Summary: {}\nChunk Text: {}".format(
+                    title, summary, text
+                )
+                body = json.dumps({"inputText": emb_text})
+                emb = bedrock.invoke_model(modelId=EMBED_MODEL, body=body)
+                emb_vec = json.loads(emb["body"].read())["embedding"]
+                opensearch_results.append({
+                    "chunk_id": chunk_id,
+                    "embedding": emb_vec
+                })
                 # Emit incremental progress sparingly (every ~5% or every 10 chunks)
                 pct = 85 + int(((idx + 1) / total) * 13)  # 85 -> 98
                 if (
@@ -527,6 +559,17 @@ def lambda_handler(event, context):
                         attrs={"stored_chunks": idx + 1},
                     )
                     last_emitted_progress = pct
+            client = get_opensearch_client()
+            actions = [{
+                    "_op_type": "index",
+                    "_index": OPENSEARCH_INDEX,
+                    "_id": chunk["chunk_id"],
+                    "_source": chunk
+                }
+                for chunk in opensearch_results
+            ]
+            success, failed = helpers.bulk(client, actions)
+            print(f"Indexed {success} documents, {failed} failed.")
             logger.info("Worker job done job_id=%s chunks=%s", job_id, len(chunks))
             # Mark job completed
             try:
