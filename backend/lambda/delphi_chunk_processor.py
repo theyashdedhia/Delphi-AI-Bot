@@ -427,13 +427,17 @@ def _extract_textract_lines(
     return text_lines
 
 def get_opensearch_client():
-    credentials = boto3.Session().get_credentials()
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    if not credentials:
+        raise RuntimeError("Unable to locate AWS credentials for OpenSearch client")
+    frozen = credentials.get_frozen_credentials()
     awsauth = AWS4Auth(
-        credentials.access_key,
-        credentials.secret_key,
+        frozen.access_key,
+        frozen.secret_key,
         AWS_REGION,
-        "es",
-        session_token=credentials.token
+        "aoss",
+        session_token=frozen.token,
     )
     return OpenSearch(
         hosts=[{"host": OPENSEARCH_HOST, "port": 443}],
@@ -526,7 +530,38 @@ def lambda_handler(event, context):
 
             _update_job_state(jt, job_id, state="storing_chunks", progress=85)
             total = max(1, len(chunks))
-            opensearch_results = []
+            bulk_timeout = int(os.environ.get("OPENSEARCH_BULK_TIMEOUT", "30"))
+            bulk_max_bytes = int(
+                os.environ.get("OPENSEARCH_BULK_MAX_BYTES", str(2 * 1024 * 1024))
+            )
+            pending_bulk_actions: List[Dict[str, Any]] = []
+            bulk_success = 0
+            bulk_failures = 0
+            client = None
+
+            def _flush_bulk_actions():
+                nonlocal client, bulk_success, bulk_failures
+                if not pending_bulk_actions:
+                    return
+                if client is None:
+                    client = get_opensearch_client()
+                try:
+                    ok, errors = helpers.bulk(
+                        client,
+                        pending_bulk_actions,
+                        chunk_size=len(pending_bulk_actions),
+                        request_timeout=bulk_timeout,
+                        max_chunk_bytes=bulk_max_bytes,
+                        raise_on_error=False,
+                        raise_on_exception=False,
+                    )
+                except Exception:
+                    logger.exception("OpenSearch bulk indexing request failed")
+                    raise
+                bulk_success += ok
+                bulk_failures += len(errors)
+                pending_bulk_actions.clear()
+
             last_emitted_progress = 85
             for idx, c in enumerate(chunks):
                 chunk_id = str(uuid.uuid4())
@@ -540,10 +575,17 @@ def lambda_handler(event, context):
                 body = json.dumps({"inputText": emb_text})
                 emb = bedrock.invoke_model(modelId=EMBED_MODEL, body=body)
                 emb_vec = json.loads(emb["body"].read())["embedding"]
-                opensearch_results.append({
-                    "chunk_id": chunk_id,
-                    "embedding": emb_vec
-                })
+                pending_bulk_actions.append(
+                    {
+                        "_op_type": "index",
+                        "_index": OPENSEARCH_INDEX,
+                        "_id": chunk_id,
+                        "_source": {
+                            "chunk_id": chunk_id,
+                            "embedding": emb_vec,
+                        },
+                    }
+                )
                 # Emit incremental progress sparingly (every ~5% or every 10 chunks)
                 pct = 85 + int(((idx + 1) / total) * 13)  # 85 -> 98
                 if (
@@ -559,18 +601,17 @@ def lambda_handler(event, context):
                         attrs={"stored_chunks": idx + 1},
                     )
                     last_emitted_progress = pct
-            client = get_opensearch_client()
-            actions = [{
-                    "_op_type": "index",
-                    "_index": OPENSEARCH_INDEX,
-                    "_id": chunk["chunk_id"],
-                    "_source": chunk
-                }
-                for chunk in opensearch_results
-            ]
-            success, failed = helpers.bulk(client, actions)
-            print(f"Indexed {success} documents, {failed} failed.")
-            logger.info("Worker job done job_id=%s chunks=%s", job_id, len(chunks))
+            _flush_bulk_actions()
+            if bulk_failures:
+                raise RuntimeError(
+                    f"OpenSearch bulk indexing reported {bulk_failures} failures"
+                )
+            logger.info(
+                "Worker job done job_id=%s chunks=%s indexed=%s",
+                job_id,
+                len(chunks),
+                bulk_success,
+            )
             # Mark job completed
             try:
                 _update_job_state(
