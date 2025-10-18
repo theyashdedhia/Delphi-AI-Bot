@@ -1,0 +1,92 @@
+/* src/components/Documents/pagination.css */
+.pager {
+  margin-top: 1rem;
+  padding: .75rem 0;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);               /* was rgba(0,0,0,0.08) */
+}
+
+.pager-left { display: flex; align-items: center; gap: .5rem; }
+
+.pager-label {
+  font-size: .9rem;
+  color: var(--text-2);                               /* was #475569 */
+  display: flex; align-items: center; gap: .5rem;
+}
+
+.pager-select {
+  padding: .35rem .6rem;
+  border-radius: 10px;                                /* slightly larger to match UI */
+  border: 1px solid var(--border);                    /* was #e2e8f0 */
+  background: var(--brand-surface);                   /* was #fff */
+  color: var(--text-1);
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.pager-select:focus {
+  outline: none;
+  border-color: var(--brand-maroon);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-maroon) 22%, transparent);
+}
+
+.pager-right { display: flex; align-items: center; gap: .5rem; }
+
+.pager-btn {
+  padding: .45rem .7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);                    /* was #e2e8f0 */
+  background: var(--brand-surface);                   /* was #fff */
+  color: var(--text-1);
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+}
+.pager-btn:hover { background: color-mix(in srgb, var(--brand-maroon) 6%, var(--brand-surface)); }
+.pager-btn:focus-visible {
+  outline: none;
+  border-color: var(--brand-maroon);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-maroon) 22%, transparent);
+}
+.pager-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.pager-status {
+  font-size: .9rem;
+  color: var(--text-1);                               /* was #334155 */
+  padding: 0 .25rem;
+  min-width: 8ch;                                     /* prevents layout shift */
+  text-align: center;
+}
+
+/* ---------- Dark mode specifics (if your variables don’t cover everything) ---------- */
+body.dark-mode .pager {
+  border-top: 1px solid rgba(255,107,138,0.25);       /* Delphi maroon tint */
+}
+body.dark-mode .pager-select,
+body.dark-mode .pager-btn {
+  background: linear-gradient(180deg, #1b1417, #24181b);
+  border-color: rgba(255,107,138,0.25);
+  color: #e7e9ee;
+}
+body.dark-mode .pager-btn:hover {
+  background: color-mix(in srgb, #ff6b8a 8%, #1b1417);
+}
+body.dark-mode .pager-select:focus,
+body.dark-mode .pager-btn:focus-visible {
+  border-color: #ff6b8a;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #ff6b8a 25%, transparent);
+}
+body.dark-mode .pager-label { color: #b8bdc7; }
+body.dark-mode .pager-status { color: #e7e9ee; }
+
+/* Ensure <option> text is readable in dark */
+body.dark-mode .pager-select option { color: #111; background: #fff; }
+
+/* ---------- Responsive: stack on narrow widths ---------- */
+@media (max-width: 640px) {
+  .pager { flex-direction: column; align-items: stretch; gap: .6rem; }
+  .pager-right { justify-content: space-between; }
+}
