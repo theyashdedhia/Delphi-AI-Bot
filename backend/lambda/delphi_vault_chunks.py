@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
+from opensearchpy import helpers
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -94,8 +95,8 @@ def _ensure_opensearch_index(client) -> None:
                             "space_type": "cosinesimil",
                         },
                     },
-                    # Note: in worker this is 'text'; we keep parity
-                    "chunk_id": {"type": "text", "index": True},
+                    # chunk_id is a keyword (exact match) to support precise lookups/deletes
+                    "chunk_id": {"type": "keyword", "index": True},
                 }
             },
         }
@@ -145,39 +146,43 @@ def _reembed_and_update_opensearch(chunk_id: str, title: str, summary: str, text
         client = _get_opensearch_client()
         _ensure_opensearch_index(client)
 
+        # Replace any existing doc for this chunk_id by deleting matches then indexing a fresh document
         try:
-            print("SEARCHING FOR EXISTING DOCUMENTS --------------------------------------------------------------------------------------------------------------->", chunk_id)
             res = client.search(
                 index=OPENSEARCH_INDEX,
-                body={"query": {"match_phrase": {"chunk_id": chunk_id}}},
+                body={"query": {"terms": {"chunk_id": [chunk_id]}}},
             )
-            print("SEARCH RESULT --------------------------------------------------------------------------------------------------------------->", res)
             hits = (res or {}).get("hits", {}).get("hits", [])
             for h in hits:
                 try:
                     doc_id = h.get("_id")
-                    print("DOC ID --------------------------------------------------------------------------------------------------------------->", doc_id)
                     if doc_id:
-                        print("DELETING DOCUMENT --------------------------------------------------------------------------------------------------------------->", doc_id)
                         client.delete(index=OPENSEARCH_INDEX, id=doc_id, refresh=False)
-                        print("Deleted OpenSearch doc id=%s for chunk_id=%s", doc_id, chunk_id)
                 except Exception:
-                    logger.exception(
-                        "Failed to delete OpenSearch doc id=%s for chunk_id=%s", doc_id, chunk_id
-                    )
+                    logger.exception("Failed to delete existing OpenSearch doc id=%s for chunk_id=%s", doc_id, chunk_id)
         except Exception:
-            logger.exception("Fallback search+delete failed for chunk_id=%s", chunk_id)
+            logger.exception("Search+delete existing docs failed for chunk_id=%s", chunk_id)
 
-        # Re-index a fresh document with new embedding, letting OpenSearch auto-generate _id
         try:
-            print("INDEXING NEW DOCUMENT --------------------------------------------------------------------------------------------------------------->")
-            client.index(
-                index=OPENSEARCH_INDEX,
-                body={"chunk_id": chunk_id, "embedding": emb_vec},
+            # Use bulk indexing (even for a single doc) to mirror worker behavior
+            actions = [
+                {
+                    "_op_type": "index",
+                    "_index": OPENSEARCH_INDEX,
+                    "_source": {"chunk_id": chunk_id, "embedding": emb_vec},
+                }
+            ]
+            ok, errors = helpers.bulk(
+                client,
+                actions,
+                chunk_size=1,
+                raise_on_error=True,
+                raise_on_exception=True,
             )
-            print("INDEXING COMPLETE --------------------------------------------------------------------------------------------------------------->")
+            if errors:
+                logger.error("OpenSearch bulk upsert reported errors: %s", errors[:3])
         except Exception:
-            logger.exception("Failed to index new OpenSearch doc for chunk_id=%s", chunk_id)
+            logger.exception("Failed to bulk index OpenSearch doc for chunk_id=%s", chunk_id)
             return False
 
         return True

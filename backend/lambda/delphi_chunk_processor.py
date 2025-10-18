@@ -504,7 +504,7 @@ def ensure_opensearch_index(client: OpenSearch, index_name: str, embed_dim: int)
                             "space_type": "cosinesimil",
                         },
                     },
-                    "chunk_id": {"type": "text", "index": True},
+                    "chunk_id": {"type": "keyword", "index": True},
                 }
             },
         }
