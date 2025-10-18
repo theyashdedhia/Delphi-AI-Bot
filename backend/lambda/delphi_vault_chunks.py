@@ -19,9 +19,10 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger()
@@ -29,6 +30,160 @@ logger.setLevel(logging.INFO)
 
 # AWS clients
 ddb = boto3.resource("dynamodb")
+
+# Region and model/index configuration (align with worker defaults)
+AWS_REGION = os.environ.get("AWS_REGION", "ap-southeast-2")
+OPENSEARCH_HOST = os.environ.get(
+    "OPENSEARCH_HOST", "6qqi01llu92mgfhf5suk.ap-southeast-2.aoss.amazonaws.com"
+)
+OPENSEARCH_INDEX = os.environ.get("OPENSEARCH_INDEX", "document-vault-index")
+OPENSEARCH_EMBED_DIM = int(os.environ.get("OPENSEARCH_EMBED_DIM", "1024"))
+EMBED_MODEL = os.environ.get("EMBED_MODEL", "amazon.titan-embed-text-v2:0")
+
+# Configure Bedrock client with short timeouts
+_br_config = Config(
+    connect_timeout=3, read_timeout=15, retries={"max_attempts": 2, "mode": "standard"}
+)
+bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION, config=_br_config)
+
+
+def _get_opensearch_client():
+    """Create a signed OpenSearch client using AWS4Auth.
+
+    Imports are inside the function to avoid module import errors when this path isn't used.
+    """
+    from opensearchpy import OpenSearch, RequestsHttpConnection
+    from requests_aws4auth import AWS4Auth
+
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    if not credentials:
+        raise RuntimeError("Unable to locate AWS credentials for OpenSearch client")
+    frozen = credentials.get_frozen_credentials()
+    awsauth = AWS4Auth(
+        frozen.access_key, frozen.secret_key, AWS_REGION, "aoss", session_token=frozen.token
+    )
+    return OpenSearch(
+        hosts=[{"host": OPENSEARCH_HOST, "port": 443}],
+        http_auth=awsauth,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection,
+    )
+
+
+def _ensure_opensearch_index(client) -> None:
+    """Ensure the OpenSearch index exists with knn_vector mapping for 'embedding'."""
+    try:
+        exists = client.indices.exists(index=OPENSEARCH_INDEX)
+    except Exception:
+        logger.exception("Failed to check OpenSearch index existence")
+        raise
+    if not exists:
+        body = {
+            "settings": {"index": {"knn": True, "knn.algo_param.ef_search": 512}},
+            "mappings": {
+                "properties": {
+                    "embedding": {
+                        "type": "knn_vector",
+                        "dimension": OPENSEARCH_EMBED_DIM,
+                        "method": {
+                            "name": "hnsw",
+                            "engine": "nmslib",
+                            "parameters": {},
+                            "space_type": "cosinesimil",
+                        },
+                    },
+                    # Note: in worker this is 'text'; we keep parity
+                    "chunk_id": {"type": "text", "index": True},
+                }
+            },
+        }
+        try:
+            client.indices.create(index=OPENSEARCH_INDEX, body=body)
+            logger.info("Created OpenSearch index '%s'", OPENSEARCH_INDEX)
+        except Exception:
+            logger.exception("Failed to create OpenSearch index '%s'", OPENSEARCH_INDEX)
+            raise
+    else:
+        # Validate mapping of embedding dimension
+        try:
+            mapping = client.indices.get_mapping(index=OPENSEARCH_INDEX)
+            props = mapping.get(OPENSEARCH_INDEX, {}).get("mappings", {}).get("properties", {})
+            emb = props.get("embedding", {})
+            if emb.get("type") != "knn_vector" or emb.get("dimension") != OPENSEARCH_EMBED_DIM:
+                raise RuntimeError(
+                    "OpenSearch index embedding mapping incompatible; expected knn_vector/%s"
+                    % OPENSEARCH_EMBED_DIM
+                )
+        except Exception:
+            logger.exception("Failed to validate OpenSearch index mapping")
+            raise
+
+
+def _build_embedding_text(title: str, summary: str, text: str) -> str:
+    return f"Chunk Title: {title}\nChunk Summary: {summary}\nChunk Text: {text}"
+
+
+def _reembed_and_update_opensearch(chunk_id: str, title: str, summary: str, text: str) -> bool:
+    """Recompute embedding via Bedrock and upsert into OpenSearch for this chunk_id.
+
+    Returns True if at least one document was updated or created; False on failure.
+    """
+    try:
+        emb_text = _build_embedding_text(title or "", summary or "", text or "")
+        body = json.dumps({"inputText": emb_text})
+        emb_resp = bedrock.invoke_model(modelId=EMBED_MODEL, body=body)
+        emb_vec = json.loads(emb_resp["body"].read()).get("embedding")
+        if not isinstance(emb_vec, list):
+            raise RuntimeError("Invalid embedding response format")
+    except Exception:
+        logger.exception("Failed to compute embedding with Bedrock")
+        return False
+
+    try:
+        client = _get_opensearch_client()
+        _ensure_opensearch_index(client)
+
+        try:
+            print("SEARCHING FOR EXISTING DOCUMENTS --------------------------------------------------------------------------------------------------------------->", chunk_id)
+            res = client.search(
+                index=OPENSEARCH_INDEX,
+                body={"query": {"match_phrase": {"chunk_id": chunk_id}}},
+            )
+            print("SEARCH RESULT --------------------------------------------------------------------------------------------------------------->", res)
+            hits = (res or {}).get("hits", {}).get("hits", [])
+            for h in hits:
+                try:
+                    doc_id = h.get("_id")
+                    print("DOC ID --------------------------------------------------------------------------------------------------------------->", doc_id)
+                    if doc_id:
+                        print("DELETING DOCUMENT --------------------------------------------------------------------------------------------------------------->", doc_id)
+                        client.delete(index=OPENSEARCH_INDEX, id=doc_id, refresh=False)
+                        print("Deleted OpenSearch doc id=%s for chunk_id=%s", doc_id, chunk_id)
+                except Exception:
+                    logger.exception(
+                        "Failed to delete OpenSearch doc id=%s for chunk_id=%s", doc_id, chunk_id
+                    )
+        except Exception:
+            logger.exception("Fallback search+delete failed for chunk_id=%s", chunk_id)
+
+        # Re-index a fresh document with new embedding, letting OpenSearch auto-generate _id
+        try:
+            print("INDEXING NEW DOCUMENT --------------------------------------------------------------------------------------------------------------->")
+            client.index(
+                index=OPENSEARCH_INDEX,
+                body={"chunk_id": chunk_id, "embedding": emb_vec},
+            )
+            print("INDEXING COMPLETE --------------------------------------------------------------------------------------------------------------->")
+        except Exception:
+            logger.exception("Failed to index new OpenSearch doc for chunk_id=%s", chunk_id)
+            return False
+
+        return True
+    except Exception:
+        logger.exception("OpenSearch update path failed")
+        return False
 
 CHUNKS_TABLE = os.environ.get("CHUNKS_TABLE", "delphi-document-chunks")
 
@@ -196,12 +351,25 @@ def update_chunk(event_body: Dict[str, Any]):
             update_params["ExpressionAttributeNames"] = expression_names
 
         response = table.update_item(**update_params)
-        
+
         updated_item = response.get('Attributes', {})
-        
+
+        # Attempt to recompute and update embedding in OpenSearch (non-fatal on failure)
+        try:
+            emb_ok = _reembed_and_update_opensearch(
+                chunk_id=updated_item.get('chunk_id'),
+                title=updated_item.get('title', ''),
+                summary=updated_item.get('summary', ''),
+                text=updated_item.get('text', ''),
+            )
+        except Exception:
+            logger.exception("Unexpected failure updating OpenSearch embedding")
+            emb_ok = False
+
         return _response(200, {
             "success": True,
             "message": "Chunk updated successfully",
+            "embedding_updated": bool(emb_ok),
             "chunk": {
                 'chunk_id': updated_item.get('chunk_id'),
                 'file_key': updated_item.get('file_key'),
