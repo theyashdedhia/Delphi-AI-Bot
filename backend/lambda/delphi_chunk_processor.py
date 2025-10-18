@@ -37,6 +37,7 @@ OPENSEARCH_HOST = os.environ.get(
     "6qqi01llu92mgfhf5suk.ap-southeast-2.aoss.amazonaws.com"
 )
 OPENSEARCH_INDEX = os.environ.get("OPENSEARCH_INDEX", "document-vault-index")
+OPENSEARCH_EMBED_DIM = int(os.environ.get("OPENSEARCH_EMBED_DIM", "1024"))
 
 # Configure clients with short network timeouts to avoid hangs
 _tx_config = Config(
@@ -351,8 +352,6 @@ def _extract_textract_lines(
     progress_cb: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> List[Dict[str, Any]]:
     try:
-        print("THIS IS THE KEY", key)
-        print("THIS IS BUCKET", bucket)
         start_resp = textract.start_document_text_detection(
             DocumentLocation={"S3Object": {"Bucket": bucket, "Name": key}}
         )
@@ -448,6 +447,68 @@ def get_opensearch_client():
     )
 
 
+def ensure_opensearch_index(client: OpenSearch, index_name: str, embed_dim: int) -> None:
+    """Ensure the OpenSearch index exists with expected KNN settings and mapping.
+
+    - Creates the index if missing using KNN settings and a knn_vector field named 'embedding'.
+    - If index exists, validates that 'embedding' is a knn_vector with the expected dimension; otherwise raises.
+    """
+    try:
+        exists = client.indices.exists(index=index_name)
+    except Exception:
+        logger.exception("Failed to check existence of OpenSearch index '%s'", index_name)
+        raise
+    if not exists:
+        body = {
+            "settings": {
+                "index": {
+                    "knn": True,
+                    "knn.algo_param.ef_search": 512,
+                }
+            },
+            "mappings": {
+                "properties": {
+                    "embedding": {
+                        "type": "knn_vector",
+                        "dimension": embed_dim,
+                        "method": {
+                            "name": "hnsw",
+                            "engine": "nmslib",
+                            "parameters": {},
+                            "space_type": "cosinesimil",
+                        },
+                    },
+                    "chunk_id": {"type": "text", "index": True},
+                }
+            },
+        }
+        try:
+            client.indices.create(index=index_name, body=body)
+            logger.info("Created OpenSearch index '%s' with embed_dim=%s", index_name, embed_dim)
+        except Exception:
+            logger.exception("Failed to create OpenSearch index '%s'", index_name)
+            raise
+    else:
+        # Validate mapping compatibility
+        try:
+            mapping = client.indices.get_mapping(index=index_name)
+            # mapping structure: {index_name: {"mappings": {"properties": {...}}}}
+            props = (
+                mapping.get(index_name, {})
+                .get("mappings", {})
+                .get("properties", {})
+            )
+            emb = props.get("embedding", {})
+            emb_type = emb.get("type")
+            emb_dim = emb.get("dimension")
+            if emb_type != "knn_vector" or emb_dim != embed_dim:
+                raise RuntimeError(
+                    f"Existing index '{index_name}' has incompatible 'embedding' mapping: type={emb_type}, dimension={emb_dim}; expected knn_vector/{embed_dim}. Delete and recreate the index or set OPENSEARCH_EMBED_DIM accordingly."
+                )
+        except Exception:
+            logger.exception("Failed to validate mapping for OpenSearch index '%s'", index_name)
+            raise
+
 def lambda_handler(event, context):
     # SQS event -> Records[...]
     records = event.get("Records", []) or []
@@ -539,12 +600,19 @@ def lambda_handler(event, context):
             bulk_failures = 0
             client = None
 
+            Ensure index exists and is compatible before bulk uploads
+            try:
+                client = get_opensearch_client()
+                ensure_opensearch_index(client, OPENSEARCH_INDEX, OPENSEARCH_EMBED_DIM)
+            except Exception as e:
+                # Propagate failure early so job can be retried/fixed
+                logger.exception("OpenSearch index preparation failed")
+                raise
+
             def _flush_bulk_actions():
                 nonlocal client, bulk_success, bulk_failures
                 if not pending_bulk_actions:
                     return
-                if client is None:
-                    client = get_opensearch_client()
                 try:
                     ok, errors = helpers.bulk(
                         client,
@@ -552,8 +620,8 @@ def lambda_handler(event, context):
                         chunk_size=len(pending_bulk_actions),
                         request_timeout=bulk_timeout,
                         max_chunk_bytes=bulk_max_bytes,
-                        raise_on_error=False,
-                        raise_on_exception=False,
+                        raise_on_error=True,
+                        raise_on_exception=True,
                     )
                 except Exception:
                     logger.exception("OpenSearch bulk indexing request failed")
@@ -579,7 +647,6 @@ def lambda_handler(event, context):
                     {
                         "_op_type": "index",
                         "_index": OPENSEARCH_INDEX,
-                        "_id": chunk_id,
                         "_source": {
                             "chunk_id": chunk_id,
                             "embedding": emb_vec,
