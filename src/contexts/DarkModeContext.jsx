@@ -24,8 +24,12 @@ export const DarkModeProvider = ({ children }) => {
     // Apply dark mode class to document body
     if (isDarkMode) {
       document.body.classList.add('dark-mode');
+      
+
     } else {
-      document.body.classList.remove('dark-mode');
+    document.body.classList.remove('dark-mode');
+      
+
     }
   }, [isDarkMode]);
 
