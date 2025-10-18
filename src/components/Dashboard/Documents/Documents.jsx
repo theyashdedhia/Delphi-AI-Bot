@@ -12,6 +12,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import EditIcon from '@mui/icons-material/Draw';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import CheckIcon from '@mui/icons-material/Check';
 import SearchIcon from '@mui/icons-material/Search';
 import SortIcon from '@mui/icons-material/Sort';
 import CloseIcon from '@mui/icons-material/Close';
@@ -91,7 +92,12 @@ const ChunkCard = ({ chunk, index, onUpdate }) => {
 
   const handleSave = async (field) => {
     try {
-      await onUpdate(chunk.chunk_id, { [field]: editValues[field] });
+      // Send all fields so backend and local state stay fully in sync
+      await onUpdate(chunk.chunk_id, {
+        title: editValues.title,
+        summary: editValues.summary,
+        text: editValues.text,
+      });
       setEditing({ field: null });
     } catch (error) {
       console.error('Failed to update chunk:', error);
@@ -161,7 +167,7 @@ const ChunkCard = ({ chunk, index, onUpdate }) => {
                 placeholder="Enter title..."
               />
               <IconButton size="small" onClick={() => handleSave('title')} color="primary">
-                <RefreshIcon fontSize="small" />
+                <CheckIcon fontSize="small" />
               </IconButton>
               <IconButton size="small" onClick={handleCancel}>
                 <CloseIcon fontSize="small" />
@@ -208,7 +214,7 @@ const ChunkCard = ({ chunk, index, onUpdate }) => {
               />
               <Stack>
                 <IconButton size="small" onClick={() => handleSave('summary')} color="primary">
-                  <RefreshIcon fontSize="small" />
+                  <CheckIcon fontSize="small" />
                 </IconButton>
                 <IconButton size="small" onClick={handleCancel}>
                   <CloseIcon fontSize="small" />
@@ -257,7 +263,7 @@ const ChunkCard = ({ chunk, index, onUpdate }) => {
               />
               <Stack>
                 <IconButton size="small" onClick={() => handleSave('text')} color="primary">
-                  <RefreshIcon fontSize="small" />
+                  <CheckIcon fontSize="small" />
                 </IconButton>
                 <IconButton size="small" onClick={handleCancel}>
                   <CloseIcon fontSize="small" />
