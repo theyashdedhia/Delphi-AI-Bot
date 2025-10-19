@@ -51,12 +51,38 @@ _br_config = Config(
 bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION, config=_br_config)
 
 ddb = boto3.resource("dynamodb")
+sqs = boto3.client("sqs", region_name=AWS_REGION)
 
 # Agentic chunking model and limits
 AGENTIC_LLM_MODEL = os.environ.get(
     "AGENTIC_LLM_MODEL", "anthropic.claude-3-5-sonnet-20241022-v2:0"
 )
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "amazon.titan-embed-text-v2:0")
+
+def _sqs_queue_url_from_arn(event_source_arn: str) -> Optional[str]:
+    """Derive the SQS QueueUrl from the eventSourceARN in the SQS record.
+
+    eventSourceARN format: arn:aws:sqs:<region>:<account>:<queueName>
+    QueueUrl format: https://sqs.<region>.amazonaws.com/<account>/<queueName>
+    """
+    try:
+        parts = event_source_arn.split(":")
+        if len(parts) < 6:
+            return None
+        region = parts[3]
+        account = parts[4]
+        queue_name = parts[5]
+        return f"https://sqs.{region}.amazonaws.com/{account}/{queue_name}"
+    except Exception:
+        logger.exception("Failed to derive QueueUrl from eventSourceARN: %s", event_source_arn)
+        return None
+
+def _sqs_delete_message(queue_url: str, receipt_handle: str) -> None:
+    try:
+        sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+        logger.info("Deleted SQS message from %s", queue_url)
+    except Exception:
+        logger.exception("Failed to delete SQS message from %s", queue_url)
 
 def chunk_text_with_offsets(
     lines: List[Dict[str, Any]], chunk_size: int = 800, overlap: int = 100
@@ -478,7 +504,7 @@ def ensure_opensearch_index(client: OpenSearch, index_name: str, embed_dim: int)
                             "space_type": "cosinesimil",
                         },
                     },
-                    "chunk_id": {"type": "text", "index": True},
+                    "chunk_id": {"type": "keyword", "index": True},
                 }
             },
         }
@@ -517,6 +543,19 @@ def lambda_handler(event, context):
 
     for rec in records:
         try:
+            # Delete the SQS message immediately on start to avoid reprocessing on long-running tasks
+            # Note: This shifts from at-least-once to effectively exactly-once under our workflow assumptions.
+            print("Event Source ARN 1:", rec.get("eventSourceARN"))
+            print("Event Source Arn 2:", rec.get("eventSourceArn"))
+            print("Receipt Handle:", rec.get("receiptHandle"))
+
+            event_source_arn = rec.get("eventSourceARN") or rec.get("eventSourceArn")
+            receipt_handle = rec.get("receiptHandle")
+            if event_source_arn and receipt_handle:
+                queue_url = _sqs_queue_url_from_arn(event_source_arn)
+                if queue_url:
+                    _sqs_delete_message(queue_url, receipt_handle)
+
             body = rec.get("body")
             msg = json.loads(body) if isinstance(body, str) else (body or {})
             job_id = msg.get("job_id") or str(uuid.uuid4())
@@ -600,7 +639,7 @@ def lambda_handler(event, context):
             bulk_failures = 0
             client = None
 
-            Ensure index exists and is compatible before bulk uploads
+            # Ensure index exists and is compatible before bulk uploads
             try:
                 client = get_opensearch_client()
                 ensure_opensearch_index(client, OPENSEARCH_INDEX, OPENSEARCH_EMBED_DIM)

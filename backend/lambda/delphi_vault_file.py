@@ -30,6 +30,9 @@ from typing import Any, Dict
 
 import boto3
 from botocore.exceptions import ClientError
+from boto3.dynamodb.conditions import Attr
+from opensearchpy import OpenSearch, RequestsHttpConnection, helpers
+from requests_aws4auth import AWS4Auth
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -58,6 +61,35 @@ SQS_QUEUE_URL = os.environ.get(
     "https://sqs.ap-southeast-2.amazonaws.com/675643094705/delphi-v2-sqs.fifo",
 )
 JOBS_TABLE = os.environ.get("JOBS_TABLE", "delphi-document-jobs")
+CHUNKS_TABLE = os.environ.get("CHUNKS_TABLE", "delphi-document-chunks")
+
+# Optional OpenSearch cleanup configuration (mirrors worker defaults)
+OPENSEARCH_HOST = os.environ.get(
+    "OPENSEARCH_HOST",
+    "6qqi01llu92mgfhf5suk.ap-southeast-2.aoss.amazonaws.com",
+)
+OPENSEARCH_INDEX = os.environ.get("OPENSEARCH_INDEX", "document-vault-index")
+
+def _get_opensearch_client() -> OpenSearch:
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    if not credentials:
+        raise RuntimeError("Unable to locate AWS credentials for OpenSearch client")
+    frozen = credentials.get_frozen_credentials()
+    awsauth = AWS4Auth(
+        frozen.access_key,
+        frozen.secret_key,
+        AWS_REGION,
+        "aoss",
+        session_token=frozen.token,
+    )
+    return OpenSearch(
+        hosts=[{"host": OPENSEARCH_HOST, "port": 443}],
+        http_auth=awsauth,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection,
+    )
 
 
 def _response(status: int, body: Dict[str, Any]):
@@ -321,10 +353,91 @@ def delete_file(event: Dict[str, Any]):
     s3_key = f"{PREFIX}{key}" if PREFIX else key
     try:
         s3.delete_object(Bucket=BUCKET, Key=s3_key)
-        return _response(200, {"success": True, "deleted": key})
     except ClientError as e:
         logger.exception("Delete failed")
         return _error(500, "Failed to delete file", error=str(e))
+
+    # Best-effort cleanup of derived data: DynamoDB chunks, OpenSearch embeddings, and job records
+    deleted_chunk_ids = []
+    # 1) Delete chunk records from DynamoDB
+    try:
+        ct = ddb.Table(CHUNKS_TABLE)
+        # Scan by file_key (assumes file_key is not the primary key)
+        scan_kwargs = {"FilterExpression": Attr("file_key").eq(s3_key)}
+        resp = ct.scan(**scan_kwargs)
+        items = resp.get("Items", [])
+        while resp.get("LastEvaluatedKey"):
+            resp = ct.scan(ExclusiveStartKey=resp["LastEvaluatedKey"], **scan_kwargs)
+            items.extend(resp.get("Items", []))
+        # Batch delete by chunk_id
+        with ct.batch_writer() as batch:
+            for it in items:
+                cid = it.get("chunk_id")
+                if cid:
+                    deleted_chunk_ids.append(cid)
+                    # Provide both PK and SK if table uses a composite key (e.g., chunk_id + file_key)
+                    delete_key = {"chunk_id": cid}
+                    if it.get("file_key") is not None:
+                        delete_key["file_key"] = it.get("file_key")
+                    batch.delete_item(Key=delete_key)
+        logger.info("Deleted %s chunk records from %s for %s", len(deleted_chunk_ids), CHUNKS_TABLE, s3_key)
+    except Exception:
+        logger.exception("Failed cleaning chunks for %s", s3_key)
+
+    # 2) Delete embeddings from OpenSearch using search + bulk delete (AOSS doesn't allow providing IDs in index operations)
+    try:
+        if deleted_chunk_ids:
+            print(f"OpenSearch cleanup: host={OPENSEARCH_HOST} index={OPENSEARCH_INDEX}")
+            print(f"OpenSearch cleanup: total chunk_ids={len(deleted_chunk_ids)} sample={deleted_chunk_ids[:5]}")
+            client = _get_opensearch_client()
+            # Build a single query that matches both keyword and text-with-subfield mappings
+            search_body = {
+                "query": {
+                    "bool": {
+                        "should": [
+                            {"terms": {"chunk_id": deleted_chunk_ids}},
+                            {"terms": {"chunk_id.keyword": deleted_chunk_ids}},
+                            {"bool": {
+                                "should": [
+                                    {"match_phrase": {"chunk_id": cid}} for cid in deleted_chunk_ids
+                                ],
+                                "minimum_should_match": 1
+                            }}
+                        ],
+                        "minimum_should_match": 1
+                    }
+                },
+                "_source": False,
+                "track_total_hits": True
+            }
+            print(f"OpenSearch cleanup: searching with combined body={json.dumps(search_body)}")
+            res = client.search(index=OPENSEARCH_INDEX, body=search_body, size=10000)
+            total = res.get("hits", {}).get("total", {})
+            total_val = total.get("value", total) if isinstance(total, dict) else total
+            hits = res.get("hits", {}).get("hits", [])
+            print(f"OpenSearch cleanup: combined search hits={len(hits)} total={total_val}")
+
+            if hits:
+                actions = [
+                    {"_op_type": "delete", "_index": OPENSEARCH_INDEX, "_id": h.get("_id")}
+                    for h in hits if h.get("_id")
+                ]
+                print(f"OpenSearch cleanup: preparing bulk delete actions={len(actions)}")
+                if actions:
+                    ok, errors = helpers.bulk(
+                        client, actions, raise_on_error=False, raise_on_exception=False
+                    )
+                    err_count = len(errors or [])
+                    print(f"OpenSearch cleanup: bulk delete ok={ok} errors={err_count}")
+                    if err_count:
+                        print(f"OpenSearch cleanup: sample errors={errors[:3]}")
+            else:
+                print("OpenSearch cleanup: no matching documents found to delete")
+    except Exception as e:
+        logger.exception("OpenSearch cleanup failed for %s", s3_key)
+        print(f"OpenSearch cleanup: unexpected failure: {e}")
+
+    return _response(200, {"success": True, "deleted": key, "chunks_deleted": len(deleted_chunk_ids)})
 
 
 def lambda_handler(event, context):  # pragma: no cover - entry point
